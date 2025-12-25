@@ -1,0 +1,97 @@
+package chat;
+
+import java.io.*;
+import java.net.Socket;
+
+public class Client {
+    private Socket socket;
+    private BufferedReader in;  // для чтения сообщений С СЕРВЕРА
+    private BufferedWriter out; // для отправки сообщений НА СЕРВЕР
+    private BufferedReader inputUser; // для чтения сообщений С КОНСОЛИ (то, что вы вводите)
+
+    public Client(String address, int port) {
+        try {
+            // 1. ПОДКЛЮЧАЕМСЯ К СЕРВЕРУ
+            this.socket = new Socket(address, port);
+            System.out.println("Успешно подключились к серверу " + address + ":" + port);
+
+            // 2. СОЗДАЕМ ПОТОКИ ДЛЯ ОБЩЕНИЯ
+            inputUser = new BufferedReader(new InputStreamReader(System.in)); // Консоль
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream())); // Сервер -> Мы
+            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())); // Мы -> Сервер
+
+            // 3. ЗАПУСКАЕМ НИТЬ ДЛЯ ПРИЁМА СООБЩЕНИЙ
+            new ReadMsg().start();
+
+            // 4. ЗАПУСКАЕМ НИТЬ ДЛЯ ОТПРАВКИ СООБЩЕНИЙ
+            new WriteMsg().start();
+
+        } catch (IOException e) {
+            System.err.println("Не удалось подключиться к серверу: " + e.getMessage());
+            downService();
+        }
+    }
+
+    // НИТЬ для чтения сообщений от сервера и вывода их в консоль
+    private class ReadMsg extends Thread {
+        @Override
+        public void run() {
+            String str;
+            try {
+                while (true) {
+                    str = in.readLine(); // Ждем сообщение от сервера
+                    if (str == null || str.equalsIgnoreCase("stop")) {
+                        Client.this.downService();
+                        break;
+                    }
+                    System.out.println(str); // Печатаем сообщение в свою консоль
+                }
+            } catch (IOException e) {
+                Client.this.downService();
+            }
+        }
+    }
+
+    // НИТЬ для чтения ваших сообщений с консоли и отправки их на сервер
+    public class WriteMsg extends Thread {
+        @Override
+        public void run() {
+            while (true) {
+                String userWord;
+                try {
+                    userWord = inputUser.readLine(); // Ждем, пока пользователь что-то напишет
+                    if (userWord.equalsIgnoreCase("stop")) {
+                        out.write("stop\n");
+                        out.flush();
+                        Client.this.downService();
+                        break;
+                    } else {
+                        out.write(userWord + "\n"); // Отправляем сообщение на сервер
+                    }
+                    out.flush(); // ОБЯЗАТЕЛЬНО!
+                } catch (IOException e) {
+                    Client.this.downService();
+                }
+            }
+        }
+    }
+
+    // Метод для закрытия всех соединений
+    private void downService() {
+        try {
+            if (!socket.isClosed()) {
+                socket.close();
+                in.close();
+                out.close();
+                System.out.println("Вы отключились от сервера.");
+            }
+        } catch (IOException ignored) {
+        }
+    }
+
+    // Точка входа для запуска клиента
+    public static void main(String[] args) {
+        // Запускаем клиента, подключаясь к localhost (своей же машине) на порт 8080
+        new Client("localhost", 8080);
+    }
+}
