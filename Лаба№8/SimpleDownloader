@@ -1,0 +1,140 @@
+package org.example;
+
+import java.io.*;
+import java.net.*;
+
+/**
+ * ПРОСТОЙ ЗАГРУЗЧИК ФАЙЛОВ - КОНСОЛЬНАЯ ВЕРСИЯ
+ * Этот класс скачивает файл по указанному URL
+ *
+ * Как использовать:
+ * 1. Запустите этот файл
+ * 2. Измените URL и путь сохранения в коде
+ * 3. Запустите снова
+ */
+public class SimpleDownloader {
+
+    public static void main(String[] args) {
+        System.out.println("=== ЗАПУСК ПРОГРАММЫ ДЛЯ СКАЧИВАНИЯ ФАЙЛОВ ===");
+        System.out.println();
+
+        // Тестовый небольшой файл
+        String fileUrl = "https://www.learningcontainer.com/wp-content/uploads/2020/04/sample-text-file.txt";
+
+        // Картинка для теста:
+        // String fileUrl = "https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50?s=200";
+
+        String savePath = "downloaded_file.txt"; // Сохранит в папке проекта
+
+        try {
+            System.out.println("🚀 Начинаем скачивание...");
+            System.out.println("📥 URL: " + fileUrl);
+            System.out.println("💾 Сохраняем как: " + savePath);
+            System.out.println();
+
+            // ШАГ 3: СКАЧИВАЕМ ФАЙЛ
+            downloadFile(fileUrl, savePath);
+
+            System.out.println();
+            System.out.println("✅ Файл успешно скачан!");
+            System.out.println("📁 Файл находится: " + new File(savePath).getAbsolutePath());
+
+        } catch (Exception e) {
+            System.err.println("❌ Ошибка при скачивании: " + e.getMessage());
+            System.out.println("🔧 Возможные решения:");
+            System.out.println("   1. Проверьте интернет-соединение");
+            System.out.println("   2. Убедитесь, что URL правильный");
+            System.out.println("   3. Проверьте права на запись в папку");
+        }
+    }
+
+    /**
+     * ОСНОВНОЙ МЕТОД ДЛЯ СКАЧИВАНИЯ ФАЙЛА
+     * @param urlString - адрес файла в интернете
+     * @param filename - куда сохранить на компьютере
+     */
+    public static void downloadFile(String urlString, String filename) throws IOException {
+        System.out.println("⏳ Устанавливаем соединение...");
+
+        // 1. ОТКРЫВАЕМ СОЕДИНЕНИЕ С СЕРВЕРОМ
+        URL url = new URL(urlString);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        // Настройки соединения
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(10000); // 10 секунд на соединение
+        connection.setReadTimeout(30000);    // 30 секунд на чтение
+
+        System.out.println("🔗 Подключаемся к серверу...");
+
+        // 2. ПРОВЕРЯЕМ ОТВЕТ СЕРВЕРА
+        int responseCode = connection.getResponseCode();
+        System.out.println("📡 Код ответа сервера: " + responseCode);
+
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            throw new IOException("Сервер вернул ошибку: " + responseCode);
+        }
+
+        // 3. УЗНАЕМ РАЗМЕР ФАЙЛА
+        long fileSize = connection.getContentLengthLong();
+        System.out.println("📊 Размер файла: " + formatFileSize(fileSize));
+        System.out.println();
+
+        // 4. СОЗДАЕМ ПОТОКИ ДЛЯ ЧТЕНИЯ И ЗАПИСИ
+        try (BufferedInputStream inputStream = new BufferedInputStream(connection.getInputStream());
+             FileOutputStream outputStream = new FileOutputStream(filename)) {
+
+            byte[] buffer = new byte[4096]; // Буфер 4KB
+            int bytesRead;
+            long totalBytesRead = 0;
+            int percentComplete = 0;
+
+            System.out.println("📥 Скачивание началось...");
+
+            // 5. ЧИТАЕМ ДАННЫЕ И ЗАПИСЫВАЕМ В ФАЙЛ
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                // Записываем прочитанные данные в файл
+                outputStream.write(buffer, 0, bytesRead);
+                totalBytesRead += bytesRead;
+
+                // 6. ПОКАЗЫВАЕМ ПРОГРЕСС (если известен размер файла)
+                if (fileSize > 0) {
+                    int newPercent = (int) ((totalBytesRead * 100) / fileSize);
+
+                    // Обновляем прогресс только когда процент изменился
+                    if (newPercent > percentComplete) {
+                        percentComplete = newPercent;
+                        System.out.printf("   ⏳ Прогресс: %3d%% (%s / %s)\n",
+                                percentComplete,
+                                formatFileSize(totalBytesRead),
+                                formatFileSize(fileSize));
+                    }
+                }
+            }
+
+            System.out.println();
+            System.out.println("📊 Итого скачано: " + formatFileSize(totalBytesRead));
+
+        } finally {
+            // 7. ЗАКРЫВАЕМ СОЕДИНЕНИЕ
+            connection.disconnect();
+            System.out.println("🔒 Соединение закрыто");
+        }
+    }
+
+    /**
+     * ПРЕОБРАЗУЕТ РАЗМЕР ФАЙЛА В ЧИТАЕМЫЙ ФОРМАТ
+     * Пример: 1024 → "1.0 KB"
+     */
+    private static String formatFileSize(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " байт";
+        } else if (bytes < 1024 * 1024) {
+            return String.format("%.1f KB", bytes / 1024.0);
+        } else if (bytes < 1024 * 1024 * 1024) {
+            return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        } else {
+            return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+        }
+    }
+}
