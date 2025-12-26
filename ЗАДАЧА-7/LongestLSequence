@@ -1,0 +1,168 @@
+import java.io.*;
+import java.nio.file.*;
+
+/**
+ * Программа для нахождения самой длинной последовательности символов 'L'
+ * в текстовом файле, состоящем из символов L, D и R.
+ *
+ * Задача: Тип 24 № 27696
+ * Текстовый файл состоит не более чем из 10^6 символов L, D и R.
+ * Определите длину самой длинной последовательности, состоящей из символов L.
+ * Хотя бы один символ L находится в последовательности.
+ */
+public class LongestLSequence {
+
+    public static void main(String[] args) {
+        // Путь к исходному файлу
+        String inputFilePath = "input.txt";
+        // Путь для символьной ссылки (необязательно)
+        String symlinkPath = "data_link.txt";
+
+        try {
+            System.out.println("=== Поиск самой длинной последовательности символов 'L' ===\n");
+
+            // ШАГ 1: Проверяем существование файла
+            File inputFile = new File(inputFilePath);
+            if (!inputFile.exists()) {
+                System.out.println("❌ Файл '" + inputFilePath + "' не найден!");
+                System.out.println("Создайте файл 'input.txt' с символами L, D, R в папке проекта.");
+                System.out.println("Пример содержимого: LLLDRLLLRDDLLL");
+                return;
+            }
+
+            System.out.println("📁 Анализируем файл: " + inputFile.getAbsolutePath());
+            System.out.println("Размер файла: " + inputFile.length() + " байт\n");
+
+            // ШАГ 2: Создаем символьную ссылку (если нужно)
+            createSymbolicLink(inputFilePath, symlinkPath);
+
+            // ШАГ 3: Читаем файл и находим самую длинную последовательность 'L'
+            int maxLength = findLongestLSequence(inputFilePath);
+
+            // ШАГ 4: Выводим результат
+            System.out.println("=".repeat(50));
+            System.out.println("✅ РЕЗУЛЬТАТ:");
+            System.out.println("Длина самой длинной последовательности символов 'L': " + maxLength);
+            System.out.println("=".repeat(50));
+
+            // ШАГ 5: Дополнительная проверка (опционально)
+            if (maxLength == 0) {
+                System.out.println("\n⚠️  Внимание: В файле не найдено ни одного символа 'L'!");
+                System.out.println("   Хотя по условию задачи должен быть хотя бы один символ L.");
+            }
+
+        } catch (IOException e) {
+            System.err.println("❌ Ошибка при обработке файла: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("❌ Неожиданная ошибка: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Метод для поиска самой длинной последовательности символов 'L'
+     * @param filePath путь к файлу
+     * @return длина самой длинной последовательности 'L'
+     */
+    private static int findLongestLSequence(String filePath) throws IOException {
+        int maxLength = 0;    // Самая длинная последовательность
+        int currentLength = 0; // Текущая последовательность
+
+        System.out.println("🔍 Начинаем анализ символов...");
+
+        // Используем BufferedReader для эффективного чтения больших файлов
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            int character;
+            long totalChars = 0;
+
+            while ((character = reader.read()) != -1) {
+                totalChars++;
+
+                // Проверяем только символы L (ASCII код 76)
+                if (character == 'L') {
+                    currentLength++;
+                    if (currentLength > maxLength) {
+                        maxLength = currentLength;
+                    }
+                } else {
+                    currentLength = 0; // Сброс при любом другом символе
+                }
+
+                // Прогресс-индикатор для больших файлов
+                if (totalChars % 100000 == 0) {
+                    System.out.printf("   Обработано: %,d символов\n", totalChars);
+                }
+            }
+
+            System.out.printf("\n📊 Всего обработано символов: %,d\n", totalChars);
+            System.out.printf("   Символов 'L' найдено в самой длинной цепочке: %d\n", maxLength);
+        }
+
+        return maxLength;
+    }
+
+    /**
+     * Метод для создания символьной ссылки (симлинка)
+     * @param targetPath оригинальный файл
+     * @param linkPath путь для символьной ссылки
+     */
+    private static void createSymbolicLink(String targetPath, String linkPath) {
+        try {
+            Path target = Paths.get(targetPath);
+            Path link = Paths.get(linkPath);
+
+            // Удаляем старую ссылку если существует
+            Files.deleteIfExists(link);
+
+            // Создаем символьную ссылку
+            Files.createSymbolicLink(link, target);
+
+            System.out.println("🔗 Создана символьная ссылка:");
+            System.out.println("   Ссылка: " + linkPath + " → Оригинал: " + targetPath);
+            System.out.println("   Ссылка указывает на: " + Files.readSymbolicLink(link));
+
+            // Проверяем, что ссылка работает
+            if (Files.exists(link)) {
+                System.out.println("   ✓ Ссылка успешно создана и доступна\n");
+            }
+
+        } catch (UnsupportedOperationException e) {
+            System.out.println("⚠️  Символьные ссылки не поддерживаются в текущей файловой системе");
+            System.out.println("   (Это нормально для Windows без прав администратора)\n");
+        } catch (IOException e) {
+            System.out.println("⚠️  Не удалось создать символьную ссылку: " + e.getMessage());
+            System.out.println("   Продолжаем работу с оригинальным файлом...\n");
+        }
+    }
+
+    /**
+     * Альтернативный метод для поиска (использует FileInputStream)
+     * Более эффективен для очень больших файлов
+     */
+    private static int findLongestLSequenceAlternative(String filePath) throws IOException {
+        int maxLength = 0;
+        int currentLength = 0;
+
+        System.out.println("\n🔍 Используем альтернативный метод анализа...");
+
+        try (FileInputStream fis = new FileInputStream(filePath)) {
+            byte[] buffer = new byte[8192]; // 8KB буфер
+            int bytesRead;
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                for (int i = 0; i < bytesRead; i++) {
+                    if (buffer[i] == 'L') {
+                        currentLength++;
+                        if (currentLength > maxLength) {
+                            maxLength = currentLength;
+                        }
+                    } else {
+                        currentLength = 0;
+                    }
+                }
+            }
+        }
+
+        return maxLength;
+    }
+}
