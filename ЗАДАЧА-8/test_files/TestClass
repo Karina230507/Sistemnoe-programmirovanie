@@ -1,0 +1,42 @@
+package testfiles;
+
+// Это тестовый класс для обфускатора
+public class TestClass {
+
+    // Поля класса
+    private int counter = 0;
+    private String name = "Test";
+
+    /**
+     * Конструктор класса
+     */
+    public TestClass(String name) {
+        this.name = name;
+        this.counter = 0;
+    }
+
+    // Метод для увеличения счетчика
+    public void incrementCounter() {
+        this.counter++;
+        System.out.println("Counter incremented to: " + this.counter);
+    }
+
+    /*
+     * Этот метод возвращает
+     * текущее значение счетчика
+     */
+    public int getCounter() {
+        return this.counter;
+    }
+
+    // Главный метод для тестирования
+    public static void main(String[] args) {
+        TestClass test = new TestClass("Hello");
+
+        for (int i = 0; i < 5; i++) {
+            test.incrementCounter();
+        }
+
+        System.out.println("Final counter: " + test.getCounter());
+    }
+}
