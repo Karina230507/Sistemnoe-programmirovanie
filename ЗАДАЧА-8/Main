@@ -1,0 +1,111 @@
+package obfuscator;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.Scanner;
+
+/**
+ * Главный класс обфускатора Java-кода
+ * Подзадачи:
+ * 1. Удаление лишних пробелов и символов перехода на новую строку
+ * 2. Удаление комментариев
+ * 3. Замена имени класса, имени файла и конструкторов
+ * 4. Замена идентификаторов на односимвольные или двухсимвольные имена
+ */
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("╔══════════════════════════════════════════════════╗");
+        System.out.println("║           JAVA КОД ОБФУСКАТОР v1.0               ║");
+        System.out.println("╚══════════════════════════════════════════════════╝");
+        System.out.println();
+
+        try {
+            // ШАГ 1: Получаем путь к директории
+            System.out.print("📁 Введите путь к директории с Java-файлами: ");
+            String directoryPath = scanner.nextLine().trim();
+
+            // Если путь пустой, используем текущую директорию
+            if (directoryPath.isEmpty()) {
+                directoryPath = ".";
+                System.out.println("⚠️  Используется текущая директория: " + new File(".").getAbsolutePath());
+            }
+
+            File directory = new File(directoryPath);
+
+            // Проверяем существование директории
+            if (!directory.exists() || !directory.isDirectory()) {
+                System.err.println("❌ Ошибка: Директория не существует или это не директория!");
+                return;
+            }
+
+            // ШАГ 2: Ищем Java-файлы
+            System.out.println("\n🔍 Ищем файлы с расширением .java...");
+            File[] javaFiles = directory.listFiles((dir, name) -> name.toLowerCase().endsWith(".java"));
+
+            if (javaFiles == null || javaFiles.length == 0) {
+                System.err.println("❌ Java-файлы не найдены в указанной директории!");
+                return;
+            }
+
+            System.out.println("✅ Найдено файлов: " + javaFiles.length);
+
+            // ШАГ 3: Создаем поддиректорию для обфусцированных файлов
+            Path outputDir = Paths.get(directoryPath, "obfuscated");
+            Files.createDirectories(outputDir);
+            System.out.println("📂 Создана директория для результатов: " + outputDir);
+
+            // ШАГ 4: Обрабатываем каждый файл
+            System.out.println("\n⚙️  Начинаем обработку файлов:");
+            System.out.println("═".repeat(50));
+
+            Obfuscator obfuscator = new Obfuscator();
+
+            for (File javaFile : javaFiles) {
+                System.out.println("\n📄 Обрабатываем файл: " + javaFile.getName());
+                System.out.println("   📍 Путь: " + javaFile.getAbsolutePath());
+
+                try {
+                    // Читаем исходный файл
+                    String originalContent = new String(Files.readAllBytes(javaFile.toPath()));
+                    System.out.println("   📊 Размер исходного файла: " + originalContent.length() + " символов");
+
+                    // Обфусцируем код
+                    String obfuscatedContent = obfuscator.obfuscate(originalContent, javaFile.getName());
+
+                    // Сохраняем результат
+                    String outputFileName = javaFile.getName().replace(".java", "_obf.java");
+                    Path outputPath = outputDir.resolve(outputFileName);
+
+                    Files.write(outputPath, obfuscatedContent.getBytes());
+
+                    System.out.println("   ✅ Результат сохранен: " + outputFileName);
+                    System.out.println("   📊 Размер после обфускации: " + obfuscatedContent.length() + " символов");
+
+                    // Показываем статистику сжатия
+                    double compressionRatio = 100.0 - (obfuscatedContent.length() * 100.0 / originalContent.length());
+                    System.out.printf("   📈 Сжатие: %.1f%%\n", compressionRatio);
+
+                } catch (Exception e) {
+                    System.err.println("   ❌ Ошибка при обработке файла: " + e.getMessage());
+                }
+            }
+
+            // ШАГ 5: Итоговая статистика
+            System.out.println("\n" + "═".repeat(50));
+            System.out.println("🎉 ОБРАБОТКА ЗАВЕРШЕНА!");
+            System.out.println("📁 Результаты сохранены в: " + outputDir.toAbsolutePath());
+            System.out.println("\n💡 Советы:");
+            System.out.println("   1. Проверьте обфусцированные файлы перед использованием");
+            System.out.println("   2. Убедитесь, что код сохраняет функциональность");
+            System.out.println("   3. Для классов с main-методом проверьте запуск");
+
+        } catch (Exception e) {
+            System.err.println("\n❌ КРИТИЧЕСКАЯ ОШИБКА: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            scanner.close();
+        }
+    }
+}
